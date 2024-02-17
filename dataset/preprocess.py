@@ -49,9 +49,9 @@ def compute_left_occ_region(w, disp):
     """
 
     coord = np.linspace(0, w - 1, w)[None,]  # 1xW
-    shifted_coord = coord - disp
+    shifted_coord = coord - disp # 오른쪽 그림 바깥으로 나간다. 안보인다가 아니고
     occ_mask = shifted_coord < 0  # occlusion mask, 1 indicates occ
-
+    
     return occ_mask
 
 
@@ -79,7 +79,7 @@ def augment(input_data, transformation):
         # perform augmentation first
         input_data = transformation(**input_data)
 
-    w = input_data['disp'].shape[-1]
+    w = input_data['disp'].shape[-1] # (209,943),(302, 1162)
     # set large/small values to be 0
     input_data['disp'][input_data['disp'] > w] = 0
     input_data['disp'][input_data['disp'] < 0] = 0

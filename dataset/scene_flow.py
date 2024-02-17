@@ -73,15 +73,15 @@ class SceneFlowFlyingThingsDataset(data.Dataset):
         self.datadir = datadir
         self.split = split
         if self.split == 'train':
-            self.split_folder = 'TRAIN'
+            self.split_folder = 'train'
         else:
-            self.split_folder = 'TEST'
+            self.split_folder = 'test'
 
         self._read_data()
         self._augmentation()
 
     def _read_data(self):
-        directory = os.path.join(self.datadir, 'frame_finalpass', self.split_folder)
+        directory = os.path.join(self.datadir, 'image_clean', self.split_folder)
         sub_folders = [os.path.join(directory, subset) for subset in os.listdir(directory) if
                        os.path.isdir(os.path.join(directory, subset))]
 

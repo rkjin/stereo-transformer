@@ -76,26 +76,24 @@ class KITTIBaseDataset(data.Dataset):
 
         # left
         left_fname = self.left_data[idx]
-        left = np.array(Image.open(left_fname)).astype(np.uint8)
-        input_data['left'] = left
-
+        left = np.array(Image.open(left_fname)).astype(np.uint8) # (370, 1226, 3)
+        input_data['left'] = left 
         # right
         right_fname = self.right_data[idx]
-        right = np.array(Image.open(right_fname)).astype(np.uint8)
+        right = np.array(Image.open(right_fname)).astype(np.uint8) # (370, 1226, 3)
         input_data['right'] = right
-
         # disp
         if not self.split == 'test':  # no disp for test files
             disp_fname = self.disp_data[idx]
 
             disp = np.array(Image.open(disp_fname)).astype(np.float) / 256.
+#            print("########",disp.max(),disp.min()) # 943, 1162            
             input_data['disp'] = disp
             input_data['occ_mask'] = np.zeros_like(disp).astype(np.bool)
-
-            if self.split == 'train':
-                input_data = random_crop(200, 640, input_data, self.split)
-
-            input_data = augment(input_data, self.transformation)
+ 
+            if self.split == 'train': 
+                input_data = random_crop(200, 640, input_data, self.split)# {left (209, 943, 3) right (209, 943, 3) disp (209, 943) occ_mask (209, 943) left (302, 1162, 3) right (302, 1162, 3) disp (302, 1162) occ_mask (302, 1162)
+            input_data = augment(input_data, self.transformation) #{left torch.Size([3, 209, 943]) right torch.Size([3, 209, 943]) disp (209, 943) occ_mask (209, 943) occ_mask_right (209, 943) left torch.Size([3, 302, 1162]) right torch.Size([3, 302, 1162]) disp (302, 1162) occ_mask (302, 1162) occ_mask_right (302, 1162)    
         else:
             input_data = normalization(**input_data)
 

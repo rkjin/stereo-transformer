@@ -77,7 +77,7 @@ class SppBackbone(nn.Module):
                 3: [2N, C2, H//16, W//16]
         """
         _, _, h, w = x.left.shape
-
+ 
         src_stereo = torch.cat([x.left, x.right], dim=0)  # 2NxCxHxW
 
         # in conv
