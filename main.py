@@ -35,7 +35,7 @@ def get_args_parser():
     parser.add_argument('--epochs', default=300, type=int)
     parser.add_argument('--clip_max_norm', default=0.1, type=float,
                         help='gradient clipping max norm')
-    parser.add_argument('--device', default='cuda', help='device to use for training / testing')
+    parser.add_argument('--device', default='cpu', help='device to use for training / testing')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--resume', default='', help='resume from checkpoint')
     parser.add_argument('--ft', action='store_true', help='load model from checkpoint, but discard optimizer state')
