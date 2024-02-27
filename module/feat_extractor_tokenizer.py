@@ -76,9 +76,11 @@ class Tokenizer(nn.Module):
 
         self.bottle_neck = _DenseBlock(block_config[0], backbone_feat_channel[0], 4, drop_rate=0.0,
                                        growth_rate=growth_rate)
+         
         up = []
         dense_block = []
-        prev_block_channels = growth_rate * block_config[0]
+        prev_block_channels = growth_rate * block_config[0] # 16
+        print("prev_block_channels",prev_block_channels)
         for i in range(self.num_resolution):
             if i == self.num_resolution - 1:
                 up.append(TransitionUp(prev_block_channels, hidden_dim, 4))
@@ -103,22 +105,25 @@ class Tokenizer(nn.Module):
                 3: [2N, C2, H//16, W//16]
         :return: feature descriptor at full resolution [2N,C,H,W]
         """
+        print("@@@@@@@@ Tockenizer")
+        features.reverse() # [torch.Size([2, 128, 14, 59])([2, 128, 27, 118])([2, 64, 53, 236])([2, 3, 209, 943])]
+        output = self.bottle_neck(features[0]) #torch.Size([2, 128, 14, 59]) -> ([2, 144, 14, 59]), 144ch = 128ch + 4 * 4ch
+        output = output[:, -(self.block_config[0] * self.growth_rate):]  # take only the new features torch.Size([2, 16, 14, 59])
 
-        features.reverse()
-        output = self.bottle_neck(features[0])
-        output = output[:, -(self.block_config[0] * self.growth_rate):]  # take only the new features
-
-        for i in range(self.num_resolution):
+        for i in range(self.num_resolution): # 3 [64, 128, 128]
+            print('output, features[i + 1]',i, output.shape, features[i + 1].shape)
             hs = self.up[i](output, features[i + 1])  # scale up and concat
+            print('hs', i, hs.shape)
             output = self.dense_block[i](hs)  # denseblock
-
+            print('output', i, output.shape)
             if i < self.num_resolution - 1:  # other than the last convolution block
                 output = output[:, -(self.block_config[i + 1] * self.growth_rate):]  # take only the new features
-
+                print("output", i, output.shape)
         return output
 
 
 def build_tokenizer(args, layer_channel):
     growth_rate = 4
     block_config = [4, 4, 4, 4]
+    print('layer_channel, args.channel_dim', layer_channel, args.channel_dim) #[64, 128, 128], 128
     return Tokenizer(block_config, layer_channel, args.channel_dim, growth_rate)

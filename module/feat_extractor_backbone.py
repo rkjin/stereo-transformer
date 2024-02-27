@@ -76,6 +76,7 @@ class SppBackbone(nn.Module):
                 2: [2N, C1, H//8, W//8]
                 3: [2N, C2, H//16, W//16]
         """
+        print("######### backbone")
         _, _, h, w = x.left.shape
  
         src_stereo = torch.cat([x.left, x.right], dim=0)  # 2NxCxHxW torch.Size([2, 3, 209, 943]) image size random crop
@@ -84,22 +85,21 @@ class SppBackbone(nn.Module):
         output = self.in_conv(src_stereo)  # 1/2 torch.Size([2, 32, 105, 472])
 
         # res blocks
-        output_1 = self.resblock_1(output)  # 1/4
+        output_1 = self.resblock_1(output)  # 1/4 torch.Size([2, 64, 53, 236])
         output_2 = self.resblock_2(output_1)  # 1/8 torch.Size([2, 128, 27, 118])
 
         # spp
         h_spp, w_spp = math.ceil(h / 16), math.ceil(w / 16)
         spp_1 = self.branch1(output_2) # torch.Size([2, 32, 1, 7])
-   
         spp_1 = F.interpolate(spp_1, size=(h_spp, w_spp), mode='bilinear', align_corners=False)
+
         spp_2 = self.branch2(output_2) #torch.Size([2, 32, 3, 14])
-
         spp_2 = F.interpolate(spp_2, size=(h_spp, w_spp), mode='bilinear', align_corners=False)
-        spp_3 = self.branch3(output_2) #torch.Size([2, 32, 6, 29])
- 
-        spp_3 = F.interpolate(spp_3, size=(h_spp, w_spp), mode='bilinear', align_corners=False)
-        spp_4 = self.branch4(output_2) #torch.Size([2, 32, 13, 59])
 
+        spp_3 = self.branch3(output_2) #torch.Size([2, 32, 6, 29])
+        spp_3 = F.interpolate(spp_3, size=(h_spp, w_spp), mode='bilinear', align_corners=False)
+
+        spp_4 = self.branch4(output_2) #torch.Size([2, 32, 13, 59])
         spp_4 = F.interpolate(spp_4, size=(h_spp, w_spp), mode='bilinear', align_corners=False) #torch.Size([2, 32, 14, 59])
  
         output_3 = torch.cat([spp_1, spp_2, spp_3, spp_4], dim=1)  # 1/16 torch.Size([2, 128, 14, 59])

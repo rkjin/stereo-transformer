@@ -49,30 +49,27 @@ class Transformer(nn.Module):
         # alternating
         for idx, (self_attn, cross_attn) in enumerate(zip(self.self_attn_layers, self.cross_attn_layers)):
             layer_idx = idx
-
+            print('@@@@@@@@@@@idx', idx) # 0 에서 5까지 6개
             # checkpoint self attn
             def create_custom_self_attn(module):
                 def custom_self_attn(*inputs):
                     return module(*inputs)
-
                 return custom_self_attn
-
+            # 결국 self_attn(feat, pos_enc, pos_indexes)를 checkpoint로 구동하는 것 아님?
             feat = checkpoint(create_custom_self_attn(self_attn), feat, pos_enc, pos_indexes)
 
             # add a flag for last layer of cross attention
-            if idx == self.num_attn_layers - 1:
+            if idx == self.num_attn_layers - 1: # last?
                 # checkpoint cross attn
                 def create_custom_cross_attn(module):
                     def custom_cross_attn(*inputs):
                         return module(*inputs, True)
-
                     return custom_cross_attn
             else:
                 # checkpoint cross attn
                 def create_custom_cross_attn(module):
                     def custom_cross_attn(*inputs):
                         return module(*inputs, False)
-
                     return custom_cross_attn
 
             feat, attn_weight = checkpoint(create_custom_cross_attn(cross_attn), feat[:, :hn], feat[:, hn:], pos_enc,
@@ -90,26 +87,32 @@ class Transformer(nn.Module):
         """
 
         # flatten NxCxHxW to WxHNxC
-        bs, c, hn, w = feat_left.shape
+        bs, c, hn, w = feat_left.shape #torch.Size([1, 128, 70, 314])
+        print("&&&&&&&&&&trasformer")
+        print('feat_left.shape', feat_left.shape)
 
         feat_left = feat_left.permute(1, 3, 2, 0).flatten(2).permute(1, 2, 0)  # CxWxHxN -> CxWxHN -> WxHNxC
-        feat_right = feat_right.permute(1, 3, 2, 0).flatten(2).permute(1, 2, 0)
+        feat_right = feat_right.permute(1, 3, 2, 0).flatten(2).permute(1, 2, 0) # ([314, 70, 128])
+        print('feat_left.shape, feat_right.shape', feat_left.shape, feat_right.shape)
         if pos_enc is not None:
             with torch.no_grad():
                 # indexes to shift rel pos encoding
                 indexes_r = torch.linspace(w - 1, 0, w).view(w, 1).to(feat_left.device)
                 indexes_c = torch.linspace(0, w - 1, w).view(1, w).to(feat_left.device)
-                pos_indexes = (indexes_r + indexes_c).view(-1).long()  # WxW' -> WW'
+                pos_indexes = (indexes_r + indexes_c).view(-1).long()  # WxW' -> WW' torch.Size([98596])
+                print('pos_indexes', pos_indexes.shape, pos_indexes)
         else:
             pos_indexes = None
 
         # concatenate left and right features
-        feat = torch.cat([feat_left, feat_right], dim=1)  # Wx2HNxC
-
+        feat = torch.cat([feat_left, feat_right], dim=1)  # Wx2HNxC torch.Size([314, 140, 128])
+        print('feat, pos_enc, pos_indexes, hn', feat.shape, pos_enc.shape, pos_indexes.shape, hn) #torch.Size([314, 140, 128]), ([627, 128]),  ([98596]), 70
+         
         # compute attention
-        attn_weight = self._alternating_attn(feat, pos_enc, pos_indexes, hn)
-        attn_weight = attn_weight.view(hn, bs, w, w).permute(1, 0, 2, 3)  # NxHxWxW, dim=2 left image, dim=3 right image
-
+        attn_weight = self._alternating_attn(feat, pos_enc, pos_indexes, hn) #torch.Size([70, 314, 314])
+        print('attn_weight', attn_weight.shape)
+        attn_weight = attn_weight.view(hn, bs, w, w).permute(1, 0, 2, 3)  # NxHxWxW, dim=2 left image, dim=3 right image torch.Size([1, 70, 314, 314])
+        print('attn_weight', attn_weight.shape)
         return attn_weight
 
 
@@ -223,6 +226,7 @@ class TransformerCrossAttnLayer(nn.Module):
 
 
 def build_transformer(args):
+
     return Transformer(
         hidden_dim=args.channel_dim,
         nhead=args.nheads,

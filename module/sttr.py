@@ -77,25 +77,26 @@ class STTR(nn.Module):
             - "occ_pred" [N,H,W]: predicted occlusion mask
             - "disp_pred_low_res" [N,H//s,W//s]: predicted low res (raw) disparity
         """
+
         bs, _, h, w = x.left.size()
-
         # extract features
-        feat = self.backbone(x)  # concatenate left and right along the dim=0
-        tokens = self.tokenizer(feat)  # 2NxCxHxW
-        pos_enc = self.pos_encoder(x)  # NxCxHx2W-1
-
+        feat = self.backbone(x)  #[torch.Size([2, 3, 209, 943])([2, 64, 53, 236])([2, 128, 27, 118])([2, 128, 14, 59])]
+        tokens = self.tokenizer(feat)  # 2NxCxHxW torch.Size([2, 128, 209, 943]) 
+        pos_enc = self.pos_encoder(x)  # NxCxHx2W-1 torch.Size([627, 128])
+        print('tokens, pos_enc', tokens.shape, pos_enc.shape)
         # separate left and right
         feat_left = tokens[:bs]
         feat_right = tokens[bs:]  # NxCxHxW
 
         # downsample
+        print('x.sampled_cols, x.sampled_rows',x.sampled_cols.shape, x.sampled_rows.shape)
         if x.sampled_cols is not None:
             feat_left = batched_index_select(feat_left, 3, x.sampled_cols)
             feat_right = batched_index_select(feat_right, 3, x.sampled_cols)
         if x.sampled_rows is not None:
-            feat_left = batched_index_select(feat_left, 2, x.sampled_rows)
-            feat_right = batched_index_select(feat_right, 2, x.sampled_rows)
-
+            feat_left = batched_index_select(feat_left, 2, x.sampled_rows) # torch.Size([1, 128, 70, 314])
+            feat_right = batched_index_select(feat_right, 2, x.sampled_rows) # torch.Size([1, 128, 70, 314])
+        print('feat_left.shape feat_right.shape',feat_left.shape, feat_right.shape)  
         # transformer
         attn_weight = self.transformer(feat_left, feat_right, pos_enc)
 

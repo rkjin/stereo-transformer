@@ -29,11 +29,17 @@ def center_crop(layer, max_height, max_width):
 
 
 def batched_index_select(source, dim, index):
-    views = [source.shape[0]] + [1 if i != dim else -1 for i in range(1, len(source.shape))]
-    expanse = list(source.shape)
+    print("batched index select", source.shape, dim, index.shape) #torch.Size([1, 128, 209, 943]) 3 torch.Size([1, 314])
+    views = [source.shape[0]] + [1 if i != dim else -1 for i in range(1, len(source.shape))] # [1, 1, 1, -1]
+    print('views', views)
+    expanse = list(source.shape) #[1, 128, 209, 943]
+    print('expanse', expanse)
     expanse[0] = -1
-    expanse[dim] = -1
-    index = index.view(views).expand(expanse)
+    expanse[dim] = -1 #  [-1, 128, 209, -1]
+    print('expense', expanse)
+    index = index.view(views).expand(expanse) # torch.Size([1, 128, 209, 314])
+    print('index', index.shape, index)
+    print('source.shape, dim, index.shape',source.shape, dim, index.shape)
     return torch.gather(source, dim, index)
 
 
